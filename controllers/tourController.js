@@ -1,24 +1,25 @@
-const fs = require('fs');
+/* eslint-disable prettier/prettier */
+const fs = require("fs");
 
-const tours = JSON.parse(fs.readFileSync('./dev-data/data/tours-simple.json'));
+const tours = JSON.parse(fs.readFileSync("./dev-data/data/tours-simple.json"));
 
 exports.checkId = function (req, res, next, val) {
-  console.log('id checker middleware running');
+  console.log("id checker middleware running");
   if (req.params.id * 1 > tours.length) {
     return res.status(404).json({
-      status: 'failed',
-      messsage: 'Invalid id',
+      status: "failed",
+      messsage: "Invalid id",
     });
   }
   next();
 };
 
 exports.checkBody = function (req, res, next) {
-  console.log('post middleware running');
+  console.log("post middleware running");
   if (!req.body.name || !req.body.price) {
     return res.status(404).json({
-      status: 'failed',
-      messsage: 'Bad request',
+      status: "failed",
+      messsage: "Bad request",
     });
   }
   next();
@@ -27,7 +28,7 @@ exports.checkBody = function (req, res, next) {
 exports.getAllTours = function (req, res) {
   console.log(req.requestTime);
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
       tours,
     },
@@ -41,13 +42,13 @@ exports.createNewTour = function (req, res) {
   tours.push(newtour);
 
   fs.writeFile(
-    './dev-data/data/tours-simple.json',
+    "./dev-data/data/tours-simple.json",
     JSON.stringify(tours),
-    function (err) {
+    (err) => {
       if (err) console.log(err);
       else {
         res.status(201).json({
-          status: 'success',
+          status: "success",
           data: {
             tour: newtour,
           },
@@ -58,10 +59,11 @@ exports.createNewTour = function (req, res) {
 };
 
 exports.getTour = function (req, res) {
-  const id = parseInt(req.params.id);
-  var tour;
+  const id = req.params.id * 1;
+  let tour;
   //console.log(id);
 
+  // eslint-disable-next-line no-plusplus
   for (let index = 0; index < tours.length; index++) {
     //console.log(tours[index]);
     if (id === tours[index].id) {
@@ -70,7 +72,7 @@ exports.getTour = function (req, res) {
     }
   }
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
       tour,
     },
@@ -78,11 +80,12 @@ exports.getTour = function (req, res) {
 };
 
 exports.updateTour = function (req, res) {
-  const id = parseInt(req.params.id);
-  var tourx;
+  const id = req.params.id * 1;
+  let tourx;
 
   //console.log(id);
 
+  // eslint-disable-next-line no-plusplus
   for (let index = 0; index < tours.length; index++) {
     //console.log(tours[index]);
     if (id === tours[index].id) {
@@ -94,7 +97,7 @@ exports.updateTour = function (req, res) {
   //console.log(req.body);
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
       tour: tourx,
     },
@@ -117,10 +120,8 @@ exports.updateTour = function (req, res) {
   // );
 };
 exports.deleteTour = function (req, res) {
-  const id = parseInt(req.params.id);
-
   res.status(204).json({
-    status: 'success',
+    status: "success",
     data: null,
   });
 };

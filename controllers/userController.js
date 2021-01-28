@@ -1,25 +1,25 @@
 exports.getAllUsers = function (req, res) {
   res.status(500).json({
-    status: 'error',
+    status: "error",
   });
 };
 exports.createNewUser = function (req, res) {
   res.status(500).json({
-    status: 'error',
+    status: "error",
   });
 };
 exports.getUser = function (req, res) {
   res.status(500).json({
-    status: 'error',
+    status: "error",
   });
 };
 exports.updateUser = function (req, res) {
   res.status(500).json({
-    status: 'error',
+    status: "error",
   });
 };
 exports.deleteUser = function (req, res) {
   res.status(500).json({
-    status: 'error',
+    status: "error",
   });
 };
