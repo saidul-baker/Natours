@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 exports.getAllUsers = function (req, res) {
   res.status(500).json({
     status: "error",

@@ -1,127 +1,184 @@
 /* eslint-disable prettier/prettier */
-const fs = require("fs");
+const Tour = require("../models/tourModels");
+const APIfeatures = require("../utils/apiFeatures");
 
-const tours = JSON.parse(fs.readFileSync("./dev-data/data/tours-simple.json"));
-
-exports.checkId = function (req, res, next, val) {
-  console.log("id checker middleware running");
-  if (req.params.id * 1 > tours.length) {
-    return res.status(404).json({
-      status: "failed",
-      messsage: "Invalid id",
-    });
-  }
+exports.top5cheap = (req, res, next) => {
+  req.query.limit = "5";
+  req.query.sort = "-ratingsAverage price";
+  req.query.fields = "name price ratingsAverage price summary description";
   next();
 };
 
-exports.checkBody = function (req, res, next) {
-  console.log("post middleware running");
-  if (!req.body.name || !req.body.price) {
-    return res.status(404).json({
+exports.getAllTours = async (req, res) => {
+  try {
+    //console.log(req.query);
+    //Execute query
+    const features = new APIfeatures(Tour.find(), req.query)
+      .filter()
+      .sort()
+      .limit()
+      .paginate();
+    const tours = await features.query;
+
+    //Sending response
+    res.status(200).json({
+      status: "success",
+      Number_of_Tours: tours.length,
+      data: {
+        tours,
+      },
+    });
+  } catch (err) {
+    res.status(404).json({
       status: "failed",
-      messsage: "Bad request",
+      message: err,
     });
   }
-  next();
 };
 
-exports.getAllTours = function (req, res) {
-  console.log(req.requestTime);
-  res.status(200).json({
-    status: "success",
-    data: {
-      tours,
-    },
-  });
+exports.createNewTour = async (req, res) => {
+  try {
+    const newTour = await Tour.create(req.body);
+    res.status(201).json({
+      status: "success",
+      data: {
+        newTour,
+      },
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: "failed",
+      message: err,
+    });
+  }
 };
 
-exports.createNewTour = function (req, res) {
-  //console.log(req.body);
-  req.body.id = tours.length + 1;
-  const newtour = req.body;
-  tours.push(newtour);
+exports.getTour = async (req, res) => {
+  try {
+    const tour = await Tour.findById(req.params.id);
+    res.status(200).json({
+      status: "success",
+      data: {
+        tour,
+      },
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: "failed",
+      message: err,
+    });
+  }
+};
 
-  fs.writeFile(
-    "./dev-data/data/tours-simple.json",
-    JSON.stringify(tours),
-    (err) => {
-      if (err) console.log(err);
-      else {
-        res.status(201).json({
-          status: "success",
-          data: {
-            tour: newtour,
+exports.updateTour = async (req, res) => {
+  try {
+    const updatedTour = await Tour.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+    res.status(200).json({
+      status: "success",
+      data: {
+        updatedTour,
+      },
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: "failed",
+      message: err,
+    });
+  }
+};
+exports.deleteTour = async (req, res) => {
+  try {
+    await Tour.findByIdAndDelete(req.params.id);
+    res.status(204).json({
+      status: "successfully deleted",
+      data: null,
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: "failed",
+      message: err,
+    });
+  }
+};
+
+exports.tourStats = async (req, res) => {
+  try {
+    const tourStats = await Tour.aggregate([
+      {
+        $match: { price: { $gte: 200 } },
+      },
+      {
+        $group: {
+          _id: "$difficulty",
+          avgRating: { $avg: "$ratingsAverage" },
+          avgPrice: { $avg: "$price" },
+          minPrice: { $min: "$price" },
+          maxPrice: { $max: "$price" },
+        },
+      },
+    ]);
+    res.status(200).json({
+      status: "success",
+      data: {
+        tourStats,
+      },
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: "failed",
+      message: err,
+    });
+  }
+};
+
+exports.getMonthlyPlan = async (req, res) => {
+  try {
+    const year = req.params.year * 1;
+
+    const plan = await Tour.aggregate([
+      {
+        $unwind: "$startDates",
+      },
+      {
+        $match: {
+          startDates: {
+            $gte: new Date(`${year}-01-01`),
+            $lte: new Date(`${year}-12-31`),
           },
-        });
-      }
-    }
-  );
-};
-
-exports.getTour = function (req, res) {
-  const id = req.params.id * 1;
-  let tour;
-  //console.log(id);
-
-  // eslint-disable-next-line no-plusplus
-  for (let index = 0; index < tours.length; index++) {
-    //console.log(tours[index]);
-    if (id === tours[index].id) {
-      tour = tours[index];
-      break;
-    }
+        },
+      },
+      {
+        $group: {
+          _id: { $month: "$startDates" },
+          numOfTours: { $sum: 1 },
+          tours: { $push: "$name" },
+        },
+      },
+      {
+        $addFields: { month: "$_id" },
+      },
+      {
+        $project: {
+          _id: 0,
+        },
+      },
+      {
+        $sort: { numOfTours: -1 },
+      },
+    ]);
+    res.status(200).json({
+      status: "success",
+      data: {
+        plan,
+      },
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: "failed",
+      message: err,
+    });
   }
-  res.status(200).json({
-    status: "success",
-    data: {
-      tour,
-    },
-  });
-};
-
-exports.updateTour = function (req, res) {
-  const id = req.params.id * 1;
-  let tourx;
-
-  //console.log(id);
-
-  // eslint-disable-next-line no-plusplus
-  for (let index = 0; index < tours.length; index++) {
-    //console.log(tours[index]);
-    if (id === tours[index].id) {
-      tourx = tours[index];
-      break;
-    }
-  }
-  //tourx.duration = 15;
-  //console.log(req.body);
-
-  res.status(200).json({
-    status: "success",
-    data: {
-      tour: tourx,
-    },
-  });
-  // tours.push(tourx)
-  // fs.writeFile(
-  //   './dev-data/data/tours-simple.json',
-  //   JSON.stringify(tours),
-  //   function (err) {
-  //     if (err) console.log(err);
-  //     else {
-  //       res.status(200).json({
-  //         status: 'success',
-  //         data: {
-  //           tour: newtour,
-  //         },
-  //       });
-  //     }
-  //   }
-  // );
-};
-exports.deleteTour = function (req, res) {
-  res.status(204).json({
-    status: "success",
-    data: null,
-  });
 };
